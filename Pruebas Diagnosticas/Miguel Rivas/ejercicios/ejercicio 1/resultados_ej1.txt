@@ -1,0 +1,6 @@
+=== REPORTE DE VALIDACION Y BENCHMARK (EJERCICIO 1 - C) ===
+
+Validacion de la secuencia (500 movimientos desde a2): INCORRECTO -> falla en el movimiento 499: casilla fuera de tablero 'Kc9'
+
+--- BENCHMARK (ALTA PRECISION NATIVA) ---
+Tiempo para verificar 10 veces los 500 movimientos: 0.001373800 segundos (1373.80 microsegundos)
