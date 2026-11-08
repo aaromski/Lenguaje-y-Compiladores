@@ -1,0 +1,5 @@
+=== RESULTADOS BENCHMARK EJERCICIO 2 (C) ===
+Tiempo para generar n=100 (10000 veces): 0.483000 segundos
+
+=== RESULTADOS BENCHMARK EJERCICIO 2 (PYTHON) ===
+Tiempo para generar n=100 (10000 veces): 16.842151 segundos

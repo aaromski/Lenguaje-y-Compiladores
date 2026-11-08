@@ -1,0 +1,31 @@
+=== REPORTE DE TRADUCCION DE PALABRAS RESERVADAS (EJERCICIO 3 - C) ===
+
+[CODIGO ORIGINAL]:
+#include <stdio.h>
+
+int main() {
+    int a = 10;
+    float b = 5.5;
+    if (a > 5) {
+        return a;
+    } else {
+        return 0;
+    }
+}
+
+--------------------------------------------------
+[CODIGO TRADUCIDO]:
+#incluir <stdio.h>
+
+entero main() {
+    entero a = 10;
+    decimal b = 5.5;
+    si (a > 5) {
+        retornar a;
+    } sino {
+        retornar 0;
+    }
+}
+
+--------------------------------------------------
+Total de palabras reservadas identificadas y traducidas: 8

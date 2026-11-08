@@ -1,0 +1,5 @@
+Ejercicio 2 - Polinomio (x+1)^n - Triangulo de Pascal
+Repeticiones benchmark: 50
+Tiempo total: 0.030558 segundos
+Tiempo promedio por generacion: 0.000611 segundos (0.611 ms)
+Coeficiente central (100, 50): 100891344545564193334812497256
