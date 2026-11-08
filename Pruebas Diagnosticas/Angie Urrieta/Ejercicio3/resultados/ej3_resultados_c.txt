@@ -1,0 +1,453 @@
+Ejercicio 3 - Traductor de palabras reservadas de C
+Archivo analizado: C:\Users\User\Desktop\Obsidean\SOSemestre\DiagnosticosP1\Angie_Urrieta\Ejercicio2\C\ejercicio2.c (14170 bytes)
+
+--- Reporte de palabras reservadas ---
+break      -> romper               (2 apariciones)
+char       -> caracter             (32 apariciones)
+const      -> constante            (13 apariciones)
+continue   -> continuar            (2 apariciones)
+double     -> doble                (2 apariciones)
+else       -> si_no                (4 apariciones)
+for        -> para                 (18 apariciones)
+if         -> si                   (24 apariciones)
+int        -> entero               (59 apariciones)
+long       -> largo                (7 apariciones)
+return     -> retornar             (19 apariciones)
+sizeof     -> tamano_de            (8 apariciones)
+static     -> estatico             (7 apariciones)
+struct     -> estructura           (3 apariciones)
+typedef    -> definicion_de_tipo   (1 apariciones)
+unsigned   -> sin_signo            (2 apariciones)
+void       -> vacio                (23 apariciones)
+while      -> mientras             (8 apariciones)
+Total traducidas: 234 | Distintas: 18 | Falsos positivos evitados: 0
+
+--- Programa traducido ---
+/*
+ * Archivo : ejercicio2.c
+ * Curso   : Lenguajes y Compiladores - UNEG
+ * Desc.   : Ejercicio 2 - Polinomio (x+1)^n via Triangulo de Pascal
+ *           Memoria dinamica (realloc).
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#ifdef _WIN32
+  #include <windows.h>
+  #include <direct.h>
+  #define MKDIR(d) _mkdir(d)
+  estatico vacio limpiar_pantalla(vacio) { system("cls"); }
+#si_no
+  #include <sys/stat.h>
+  #define MKDIR(d) mkdir(d, 0777)
+  estatico vacio limpiar_pantalla(vacio) { system("clear"); }
+#endif
+
+#define CYAN   "\x1b[96m"
+#define GREEN  "\x1b[92m"
+#define RED    "\x1b[91m"
+#define YELLOW "\x1b[93m"
+#define BOLD   "\x1b[1m"
+#define RESET  "\x1b[0m"
+#define CHECK  "\xE2\x9C\x93"
+#define CROSS  "X"
+
+#define BIG_INIT_CAP 8
+#define REPS_BENCHMARK 50
+
+estatico vacio setup_consola(vacio) {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode;
+    si (GetConsoleMode(h, &mode))
+        SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#endif
+}
+
+// Memoria dinamica con realloc
+definicion_de_tipo estructura {
+    sin_signo caracter *d;
+    entero n;
+    entero cap;
+} Big;
+
+estatico vacio *xmalloc(size_t s) { vacio *p = malloc(s);  si (!p) { perror("malloc");  exit(1); } retornar p; }
+estatico vacio *xcalloc(size_t n, size_t s) { vacio *p = calloc(n, s); si (!p) { perror("calloc"); exit(1); } retornar p; }
+estatico vacio *xrealloc(vacio *p, size_t s) { vacio *q = realloc(p, s); si (!q) { perror("realloc"); exit(1); } retornar q; }
+
+estatico vacio big_ensure(Big *b, entero need) {
+    si (need <= b->cap) retornar;
+    entero nc = b->cap > 0 ? b->cap : BIG_INIT_CAP;
+    mientras (nc < need) nc *= 2;
+    b->d = xrealloc(b->d, nc);
+    memset(b->d + b->cap, 0, nc - b->cap);
+    b->cap = nc;
+}
+
+Big *big_new(vacio) {
+    Big *b = xmalloc(tamano_de(Big));
+    b->cap = BIG_INIT_CAP;
+    b->d = xcalloc(b->cap, 1);
+    b->n = 1;
+    retornar b;
+}
+
+Big *big_from_int(entero v) {
+    Big *b = big_new();
+    si (v == 0) retornar b;
+    entero n = 0;
+    mientras (v > 0) { big_ensure(b, n + 1); b->d[n++] = v % 10; v /= 10; }
+    b->n = n;
+    retornar b;
+}
+
+Big *big_from_string(constante caracter *s) {
+    Big *b = big_new();
+    entero len = (entero)strlen(s);
+    big_ensure(b, len);
+    para (entero i = 0; i < len; i++) b->d[i] = s[len - 1 - i] - '0';
+    entero n = len;
+    mientras (n > 1 && b->d[n - 1] == 0) n--;
+    b->n = n;
+    retornar b;
+}
+
+vacio big_free(Big *b) { si (!b) retornar; free(b->d); free(b); }
+
+caracter *big_to_string(constante Big *b) {
+    caracter *s = xmalloc(b->n + 1);
+    para (entero i = 0; i < b->n; i++) s[i] = '0' + b->d[b->n - 1 - i];
+    s[b->n] = '\0';
+    retornar s;
+}
+
+entero big_equals(constante Big *a, constante Big *b) {
+    si (a->n != b->n) retornar 0;
+    retornar memcmp(a->d, b->d, a->n) == 0;
+}
+
+entero big_is_one(constante Big *b) { retornar b->n == 1 && b->d[0] == 1; }
+
+vacio big_add(Big *r, constante Big *a, constante Big *b) {
+    entero n = a->n > b->n ? a->n : b->n;
+    big_ensure(r, n + 2);
+    entero carry = 0;
+    para (entero i = 0; i < n; i++) {
+        entero s = carry + (i < a->n ? a->d[i] : 0) + (i < b->n ? b->d[i] : 0);
+        r->d[i] = s % 10;
+        carry = s / 10;
+    }
+    si (carry) r->d[n++] = carry;
+    r->n = n;
+}
+
+vacio big_mul_small(Big *r, constante Big *a, entero m) {
+    big_ensure(r, a->n + 32);
+    largo largo carry = 0;
+    para (entero i = 0; i < a->n; i++) {
+        largo largo s = carry + (largo largo)a->d[i] * m;
+        r->d[i] = s % 10;
+        carry = s / 10;
+    }
+    entero n = a->n;
+    mientras (carry) { big_ensure(r, n + 1); r->d[n++] = carry % 10; carry /= 10; }
+    r->n = n;
+}
+
+vacio big_mul_big(Big *r, constante Big *a, constante Big *b) {
+    entero rmax = a->n + b->n + 1;
+    sin_signo caracter *res = xcalloc(rmax, 1);
+    para (entero i = 0; i < a->n; i++) {
+        entero carry = 0, j;
+        para (j = 0; j < b->n; j++) {
+            entero s = res[i + j] + a->d[i] * b->d[j] + carry;
+            res[i + j] = s % 10;
+            carry = s / 10;
+        }
+        entero idx = i + j;
+        mientras (carry > 0) {
+            entero s = res[idx] + carry;
+            res[idx] = s % 10;
+            carry = s / 10;
+            idx++;
+        }
+    }
+    entero rn = a->n + b->n;
+    mientras (rn > 1 && res[rn - 1] == 0) rn--;
+    big_ensure(r, rn);
+    memcpy(r->d, res, rn);
+    r->n = rn;
+    free(res);
+}
+
+// Triangulo de Pascal (fila n)
+Big **pascal_row(entero n) {
+    Big **prev = xmalloc(tamano_de(Big *));
+    prev[0] = big_from_int(1);
+    para (entero r = 1; r <= n; r++) {
+        Big **curr = xmalloc(tamano_de(Big *) * (r + 1));
+        curr[0] = big_from_int(1);
+        curr[r] = big_from_int(1);
+        para (entero k = 1; k < r; k++) {
+            curr[k] = big_new();
+            big_add(curr[k], prev[k - 1], prev[k]);
+        }
+        para (entero k = 0; k < r; k++) big_free(prev[k]);
+        free(prev);
+        prev = curr;
+    }
+    retornar prev;
+}
+
+vacio free_row(Big **row, entero n) {
+    para (entero k = 0; k <= n; k++) big_free(row[k]);
+    free(row);
+}
+
+Big *evaluate(Big **coef, entero n, entero x) {
+    Big *acc = big_from_int(0);
+    Big *pow_x = big_from_int(1);
+    para (entero k = 0; k <= n; k++) {
+        Big *term = big_new();
+        big_mul_big(term, coef[k], pow_x);
+        Big *new_acc = big_new();
+        big_add(new_acc, acc, term);
+        big_free(acc); big_free(term);
+        acc = new_acc;
+        si (k < n) {
+            Big *np = big_new();
+            big_mul_small(np, pow_x, x);
+            big_free(pow_x);
+            pow_x = np;
+        }
+    }
+    big_free(pow_x);
+    retornar acc;
+}
+
+caracter *polynomial_string(Big **coef, entero n) {
+    entero total = n + 1;
+    caracter **terms = (caracter **)xmalloc(tamano_de(caracter *) * total);
+    size_t len = 0;
+    para (entero k = n; k >= 0; k--) {
+        caracter *cs = big_to_string(coef[k]);
+        caracter var[24];
+        si (k == 0) var[0] = '\0';
+        si_no si (k == 1) strcpy(var, "x");
+        si_no sprintf(var, "x^%d", k);
+        entero omit_one = (k > 0 && big_is_one(coef[k]));
+        caracter *t = (caracter *)xmalloc(strlen(cs) + strlen(var) + 2);
+        si (omit_one) sprintf(t, "%s", var);
+        si_no sprintf(t, "%s%s", cs, var);
+        terms[n - k] = t;
+        len += strlen(t) + 3;
+        free(cs);
+    }
+    caracter *out = (caracter *)xmalloc(len + 1);
+    out[0] = '\0';
+    para (entero i = 0; i < total; i++) {
+        si (i) strcat(out, " + ");
+        strcat(out, terms[i]);
+        free(terms[i]);
+    }
+    free(terms);
+    retornar out;
+}
+
+vacio print_polynomial(Big **coef, entero n, constante caracter *pref) {
+    caracter *s = polynomial_string(coef, n);
+    printf("%s", pref);
+    printf(GREEN "%s" RESET "\n", s);
+    free(s);
+}
+
+vacio show_steps(Big **coef, entero n, entero x) {
+    caracter *ps = polynomial_string(coef, n);
+    printf("  Polinomio: (x+1)^%d = " GREEN "%s" RESET "\n", n, ps);
+
+    FILE *fp = fopen("resultados/ej2_pasos_c.txt", "w");
+    si (fp) {
+        fprintf(fp, "Ejercicio 2 - Evaluacion paso a paso \n");
+        fprintf(fp, "Polinomio: (x+1)^%d = %s\n", n, ps);
+        fprintf(fp, "Evaluacion para x = %d:\n", x);
+    }
+
+    printf("  " CYAN "Evaluacion para x = %d :" RESET "\n", x);
+
+    Big *acc = big_from_int(0);
+    Big *pow_x = big_from_int(1);
+    para (entero k = 0; k <= n; k++) {
+        Big *term = big_new();
+        big_mul_big(term, coef[k], pow_x);
+        Big *new_acc = big_new();
+        big_add(new_acc, acc, term);
+
+        caracter *sc = big_to_string(coef[k]);
+        caracter *sp = big_to_string(pow_x);
+        caracter *st = big_to_string(term);
+        caracter *sa = big_to_string(new_acc);
+
+        printf("  " YELLOW "Paso %3d:" RESET " %s*(%d^%d) = %s*%s = " CYAN "%s" RESET
+               "  -> acumulado: " GREEN "%s" RESET "\n",
+               k + 1, sc, x, k, sc, sp, st, sa);
+        si (fp) fprintf(fp, "  Paso %3d: %s*(%d^%d) = %s*%s = %s  -> acumulado: %s\n",
+                        k + 1, sc, x, k, sc, sp, st, sa);
+
+        free(sc); free(sp); free(st); free(sa);
+        big_free(acc); big_free(term);
+        acc = new_acc;
+        si (k < n) {
+            Big *np = big_new();
+            big_mul_small(np, pow_x, x);
+            big_free(pow_x);
+            pow_x = np;
+        }
+    }
+
+    caracter *sf = big_to_string(acc);
+    printf("  " GREEN "Resultado:" RESET " f(%d) = " BOLD "%s" RESET "\n", x, sf);
+
+    Big *ver = big_from_int(1);
+    para (entero i = 0; i < n; i++) {
+        Big *t = big_new();
+        big_mul_small(t, ver, x + 1);
+        big_free(ver);
+        ver = t;
+    }
+    caracter *sv = big_to_string(ver);
+    entero ok = big_equals(ver, acc);
+    printf("  Verificacion directa: (%d+1)^%d = %s  %s%s" RESET "\n",
+           x, n, sv, ok ? GREEN : RED, ok ? CHECK : CROSS);
+
+    si (fp) {
+        fprintf(fp, "Resultado: f(%d) = %s\n", x, sf);
+        fprintf(fp, "Verificacion directa: (%d+1)^%d = %s  %s\n", x, n, sv, ok ? "OK" : "ERROR");
+        fclose(fp);
+    }
+    printf("  " GREEN CHECK " Paso a paso guardado en resultados/ej2_pasos_c.txt\n" RESET, 0);
+
+    free(sf); free(sv); free(ps);
+    big_free(ver); big_free(acc); big_free(pow_x);
+}
+
+entero leer_entero(constante caracter *mensaje, entero minimo, entero maximo) {
+    caracter buf[64];
+    mientras (1) {
+        printf("%s", mensaje);
+        fflush(stdout);
+        si (!fgets(buf, tamano_de buf, stdin)) continuar;
+        si (buf[0] == '\n') retornar -1;
+        caracter *end;
+        largo val = strtol(buf, &end, 10);
+        si (end == buf || val < minimo || val > maximo) {
+            printf("  " RED "Entrada invalida. Ingrese un entero entre %d y %d." RESET "\n", minimo, maximo);
+            continuar;
+        }
+        retornar (entero)val;
+    }
+}
+
+entero main(vacio) {
+    setup_consola();
+    limpiar_pantalla();
+    MKDIR("resultados");
+
+    printf(CYAN "=================================================================\n"
+                "      UNEG - LENGUAJES Y COMPILADORES - PRUEBA DIAGNOSTICA\n"
+                "=================================================================\n" RESET);
+    printf(BOLD "EJERCICIO 2: POLINOMIO (x+1)^n - TRIANGULO DE PASCAL\n\n" RESET);
+
+    // Polinomios de referencia y verificacion
+    printf(BOLD " Polinomios de referencia y verificaciones\n" RESET);
+    printf("-----------------------------------------------------------------\n");
+    para (entero n = 0; n <= 7; n++) {
+        Big **c = pascal_row(n);
+        caracter lab[40];
+        sprintf(lab, "  (x+1)^%-2d = ", n);
+        print_polynomial(c, n, lab);
+        free_row(c, n);
+    }
+
+    printf("\n  " BOLD "Verificaciones automaticas:" RESET "\n");
+    estructura { entero n, x; constante caracter *esp; } checks[] = {
+        { 5, 2, "243" },
+        { 10, 2, "59049" },
+        { 100, 1, "1267650600228229401496703205376" }
+    };
+    para (entero i = 0; i < 3; i++) {
+        Big **c = pascal_row(checks[i].n);
+        Big *f = evaluate(c, checks[i].n, checks[i].x);
+        Big *e = big_from_string(checks[i].esp);
+        entero ok = big_equals(f, e);
+        caracter *got = big_to_string(f);
+        printf("  %s%s" RESET " f(%d), n=%-3d = %s\n",
+               ok ? GREEN : RED, ok ? CHECK : CROSS, checks[i].x, checks[i].n, got);
+        free(got); big_free(e); big_free(f); free_row(c, checks[i].n);
+    }
+
+    mientras (1) {
+        printf("\n" BOLD " Generacion y evaluacion interactiva\n" RESET);
+        printf("-----------------------------------------------------------------\n");
+        entero n = leer_entero("  Ingrese el valor de n (0 a 1000, ENTER para salir): ", 0, 1000);
+        si (n == -1) romper;
+        entero x = leer_entero("  Ingrese el valor de x (0 a 1000): ", 0, 1000);
+        si (x == -1) romper;
+
+        Big **c = pascal_row(n);
+        show_steps(c, n, x);
+        free_row(c, n);
+    }
+
+    // Prueba de estres
+    printf("\n" BOLD " Prueba de estres (generacion n=100, %d reps)\n" RESET, REPS_BENCHMARK);
+    printf("-----------------------------------------------------------------\n");
+
+    Big **c100 = pascal_row(100);
+    caracter *central = big_to_string(c100[50]);
+    printf("  Coeficiente central (100,50): " CYAN "%s" RESET "\n", central);
+    free_row(c100, 100);
+
+    printf("  Ejecutando %d generaciones de n=100...\n", REPS_BENCHMARK);
+    estructura timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    para (entero r = 0; r < REPS_BENCHMARK; r++) {
+        Big **c = pascal_row(100);
+        free_row(c, 100);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    doble t_total = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+    doble t_prom = t_total / REPS_BENCHMARK;
+
+    caracter b1[32], b2[32], b3[32];
+    snprintf(b1, tamano_de b1, "%.6f", t_total);
+    snprintf(b2, tamano_de b2, "%.6f", t_prom);
+    snprintf(b3, tamano_de b3, "%.3f", t_prom * 1000.0);
+
+    printf("\n" BOLD "----------------------------------------------------------\n");
+    printf("| " CYAN "Metrica" RESET "           | " CYAN "Valor" RESET "          | " CYAN "Detalle" RESET "           |\n");
+    printf("----------------------------------------------------------\n");
+    printf("| %-17s | %-14d | %-17s |\n", "Repeticiones", REPS_BENCHMARK, "Generaciones");
+    printf("| %-17s | %-14s | %-17s |\n", "Tiempo Total", b1, "Segundos");
+    printf("| %-17s | %-14s | %-17s |\n", "Tiempo Promedio", b2, "Segundos");
+    printf("| %-17s | %-14s | %-17s |\n", "Promedio (ms)", b3, "Por generacion");
+    printf("----------------------------------------------------------\n" RESET);
+
+    FILE *f = fopen("resultados/ej2_tiempos_c.txt", "w");
+    si (f) {
+        fprintf(f, "Ejercicio 2 - Polinomio (x+1)^n - Triangulo de Pascal\n");
+        fprintf(f, "Repeticiones benchmark: %d\n", REPS_BENCHMARK);
+        fprintf(f, "Tiempo total: %.6f segundos\n", t_total);
+        fprintf(f, "Tiempo promedio por generacion: %.6f segundos (%.3f ms)\n", t_prom, t_prom * 1000.0);
+        fprintf(f, "Coeficiente central (100, 50): %s\n", central);
+        fclose(f);
+        printf("\n" GREEN CHECK " Resultados guardados en resultados/ej2_tiempos_c.txt\n" RESET);
+    }
+    free(central);
+
+    retornar 0;
+}
+

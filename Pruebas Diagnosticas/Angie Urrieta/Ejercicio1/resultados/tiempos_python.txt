@@ -1,0 +1,14 @@
+Resultado final: movimiento CORRECTO
+Movimientos validados: 500 (cadena oficial, Ak=a2, sin fallas)
+Repeticion 1: 0.000898700 segundos
+Repeticion 2: 0.000454200 segundos
+Repeticion 3: 0.000460900 segundos
+Repeticion 4: 0.000454700 segundos
+Repeticion 5: 0.000479400 segundos
+Repeticion 6: 0.001252600 segundos
+Repeticion 7: 0.001095900 segundos
+Repeticion 8: 0.001274500 segundos
+Repeticion 9: 0.000788400 segundos
+Repeticion 10: 0.000818200 segundos
+Tiempo Python total (10 reps x 500 movs): 0.007978 segundos
+Tiempo promedio por repeticion: 0.000798 segundos
